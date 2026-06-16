@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pathfinding Visualizer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    gap: 24px;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #a78bfa;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Controls ── */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  select, button {
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: 1px solid #374151;
+    background: #1e2130;
+    color: #e2e8f0;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  select:hover, button:hover { background: #2a2f45; border-color: #7c3aed; }
+
+  button.primary {
+    background: #7c3aed;
+    border-color: #7c3aed;
+    font-weight: 600;
+  }
+  button.primary:hover { background: #6d28d9; }
+  button.primary:disabled { background: #4b5563; border-color: #4b5563; cursor: not-allowed; }
+
+  label { font-size: 0.85rem; color: #94a3b8; }
+
+  .delay-group { display: flex; align-items: center; gap: 8px; }
+  input[type=range] { accent-color: #7c3aed; width: 100px; }
+
+  /* ── Stats ── */
+  .stats {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .stat-card {
+    background: #1e2130;
+    border: 1px solid #374151;
+    border-radius: 10px;
+    padding: 12px 22px;
+    text-align: center;
+    min-width: 130px;
+  }
+
+  .stat-card .value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #a78bfa;
+  }
+
+  .stat-card .label {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* ── Grid ── */
+  #grid-container {
+    display: grid;
+    gap: 2px;
+    /* columns set dynamically */
+  }
+
+  .cell {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 3px;
+    transition: background 0.08s;
+  }
+
+  /* Cell states */
+  .cell.free    { background: #1e2130; }
+  .cell.wall    { background: #374151; }
+  .cell.start   { background: #10b981; }
+  .cell.goal    { background: #f59e0b; }
+  .cell.visited { background: #3b4fa8; }
+  .cell.path    { background: #a78bfa; }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #94a3b8;
+  }
+
+  .legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+  }
+
+  .msg {
+    font-size: 0.9rem;
+    color: #f87171;
+    min-height: 1.2em;
+  }
+</style>
+</head>
+<body>
+
+<h1>Pathfinding Visualizer</h1>
+
+<div class="controls">
+  <div>
+    <label>Algoritmo</label><br/>
+    <select id="algo-select">
+      <option value="bfs">BFS</option>
+      <option value="dfs">DFS</option>
+      <option value="astar">A*</option>
+    </select>
+  </div>
+
+  <div>
+    <label>Laberinto</label><br/>
+    <select id="maze-select"></select>
+  </div>
+
+  <div class="delay-group">
+    <label>Velocidad<br/><span id="delay-label">30ms</span></label>
+    <input type="range" id="delay-range" min="5" max="200" value="30" />
+  </div>
+
+  <div style="display:flex;gap:8px;align-items:flex-end;padding-bottom:1px">
+    <button class="primary" id="btn-solve">Resolver</button>
+    <button id="btn-reset">Reset</button>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat-card">
+    <div class="value" id="stat-path">—</div>
+    <div class="label">Longitud camino</div>
+  </div>
+  <div class="stat-card">
+    <div class="value" id="stat-nodes">—</div>
+    <div class="label">Nodos expandidos</div>
+  </div>
+  <div class="stat-card">
+    <div class="value" id="stat-algo">—</div>
+    <div class="label">Algoritmo</div>
+  </div>
+</div>
+
+<div class="msg" id="msg"></div>
+
+<div id="grid-container"></div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#1e2130;border:1px solid #374151"></div>Libre</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#374151"></div>Pared</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>Inicio</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Meta</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3b4fa8"></div>Visitado</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>Camino</div>
+</div>
+
+<script src="app.js"></script>
+<script>
+// ─── Init selectors ───────────────────────────────────────────────────────────
+
+const mazeSelect  = document.getElementById('maze-select');
+const algoSelect  = document.getElementById('algo-select');
+const btnSolve    = document.getElementById('btn-solve');
+const btnReset    = document.getElementById('btn-reset');
+const gridEl      = document.getElementById('grid-container');
+const msgEl       = document.getElementById('msg');
+const delayRange  = document.getElementById('delay-range');
+const delayLabel  = document.getElementById('delay-label');
+const statPath    = document.getElementById('stat-path');
+const statNodes   = document.getElementById('stat-nodes');
+const statAlgo    = document.getElementById('stat-algo');
+
+MAZES.forEach((m, i) => {
+  const opt = document.createElement('option');
+  opt.value = i;
+  opt.textContent = m.name;
+  mazeSelect.appendChild(opt);
+});
+
+delayRange.addEventListener('input', () => {
+  delayLabel.textContent = `${delayRange.value}ms`;
+});
+
+// ─── State ───────────────────────────────────────────────────────────────────
+
+let cells = [];       // flat array of DOM elements
+let animTimeout = null;
+
+// ─── Render maze ─────────────────────────────────────────────────────────────
+
+function renderMaze(maze) {
+  gridEl.innerHTML = '';
+  cells = [];
+  const cols = maze.grid[0].length;
+  const rows = maze.grid.length;
+
+  // Responsive cell size
+  const maxW = Math.min(window.innerWidth - 40, 700);
+  const cellPx = Math.floor((maxW - (cols - 1) * 2) / cols);
+
+  gridEl.style.gridTemplateColumns = `repeat(${cols}, ${cellPx}px)`;
+  gridEl.style.width = `${cols * cellPx + (cols - 1) * 2}px`;
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const div = document.createElement('div');
+      div.className = 'cell';
+      div.dataset.r = r;
+      div.dataset.c = c;
+
+      const isStart = r === maze.start[0] && c === maze.start[1];
+      const isGoal  = r === maze.goal[0]  && c === maze.goal[1];
+
+      if      (isStart)         div.classList.add('start');
+      else if (isGoal)          div.classList.add('goal');
+      else if (maze.grid[r][c]) div.classList.add('wall');
+      else                      div.classList.add('free');
+
+      gridEl.appendChild(div);
+      cells.push(div);
+    }
+  }
+}
+
+function getCell(r, c) {
+  const maze = MAZES[+mazeSelect.value];
+  return cells[r * maze.grid[0].length + c];
+}
+
+// ─── Reset ───────────────────────────────────────────────────────────────────
+
+function reset() {
+  if (animTimeout) { clearTimeout(animTimeout); animTimeout = null; }
+  btnSolve.disabled = false;
+  msgEl.textContent = '';
+  statPath.textContent  = '—';
+  statNodes.textContent = '—';
+  statAlgo.textContent  = '—';
+  renderMaze(MAZES[+mazeSelect.value]);
+}
+
+mazeSelect.addEventListener('change', reset);
+btnReset.addEventListener('click', reset);
+
+// ─── Animate ─────────────────────────────────────────────────────────────────
+
+function animate(visitedOrder, path, delay, maze) {
+  let i = 0;
+
+  function stepVisited() {
+    if (i >= visitedOrder.length) {
+      stepPath(0);
+      return;
+    }
+    const [r, c] = visitedOrder[i++];
+    const cell = getCell(r, c);
+    const isStart = r === maze.start[0] && c === maze.start[1];
+    const isGoal  = r === maze.goal[0]  && c === maze.goal[1];
+    if (!isStart && !isGoal) cell.classList.replace('free', 'visited') || cell.classList.add('visited');
+    animTimeout = setTimeout(stepVisited, delay);
+  }
+
+  function stepPath(j) {
+    if (j >= path.length) {
+      btnSolve.disabled = false;
+      return;
+    }
+    const [r, c] = path[j];
+    const cell = getCell(r, c);
+    const isStart = r === maze.start[0] && c === maze.start[1];
+    const isGoal  = r === maze.goal[0]  && c === maze.goal[1];
+    if (!isStart && !isGoal) {
+      cell.classList.remove('visited', 'free');
+      cell.classList.add('path');
+    }
+    animTimeout = setTimeout(() => stepPath(j + 1), delay);
+  }
+
+  stepVisited();
+}
+
+// ─── Solve ───────────────────────────────────────────────────────────────────
+
+btnSolve.addEventListener('click', () => {
+  const maze  = MAZES[+mazeSelect.value];
+  const algo  = algoSelect.value;
+  const delay = +delayRange.value;
+
+  // Clear previous run visuals without full re-render
+  cells.forEach(cell => {
+    if (cell.classList.contains('visited') || cell.classList.contains('path')) {
+      cell.classList.remove('visited', 'path');
+      cell.classList.add('free');
+    }
+  });
+  // Re-mark start/goal in case they were overwritten
+  getCell(...maze.start).className = 'cell start';
+  getCell(...maze.goal).className  = 'cell goal';
+
+  msgEl.textContent = '';
+  btnSolve.disabled = true;
+
+  const algoFn = algo === 'bfs' ? bfs : algo === 'dfs' ? dfs : aStar;
+  const result  = algoFn(maze.grid, maze.start, maze.goal);
+
+  statNodes.textContent = result.nodesExpanded;
+  statAlgo.textContent  = algo.toUpperCase();
+
+  if (result.path.length === 0) {
+    msgEl.textContent = 'No se encontró camino.';
+    statPath.textContent = 0;
+    btnSolve.disabled = false;
+    return;
+  }
+
+  statPath.textContent = result.path.length;
+  animate(result.visitedOrder, result.path, delay, maze);
+});
+
+// ─── Bootstrap ───────────────────────────────────────────────────────────────
+
+reset();
+</script>
+</body>
+</html>
