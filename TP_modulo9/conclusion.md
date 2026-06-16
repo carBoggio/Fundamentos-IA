@@ -1,0 +1,7 @@
+# Conclusión — Bloque 9: Aprendizaje Supervisado — Regresión
+
+La práctica sobre el dataset California Housing permite verificar los conceptos centrales de regresión supervisada en un contexto con 20.640 ejemplos, 8 features y alta correlación entre variables. La regresión lineal base alcanza R²=0.614 en validation, lo que indica que el modelo lineal captura el 61.4% de la varianza del precio pero deja margen para mejoras mediante modelos más expresivos.
+
+El diagnóstico de overfitting mediante regresión polinómica es el resultado más ilustrativo del trabajo: el modelo de grado 3 reduce el MSE en train a 0.34 pero lo dispara en validation a 2.102.256, una diferencia de seis órdenes de magnitud que evidencia memorización completa del conjunto de entrenamiento incluyendo su ruido. Este fenómeno confirma empíricamente el bias-variance tradeoff: al aumentar la capacidad del modelo, el bias disminuye pero la varianza crece de forma descontrolada sin regularización.
+
+La regularización resuelve parcialmente este problema. Ridge (L2) achica todos los coeficientes suavemente sin eliminar features, mientras que Lasso (L1) llevó el coeficiente de Population exactamente a cero, indicando que esa variable no aporta información independiente una vez condicionadas las demás. La evaluación final sobre test — conjunto que no participó en ninguna decisión de diseño — muestra que Lasso obtiene el mejor R²=0.579, confirmando que la selección implícita de features que realiza L1 mejora la generalización en este dataset.

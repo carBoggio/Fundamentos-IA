@@ -1,0 +1,7 @@
+# Conclusión — Bloque 8: Razonamiento Bajo Incertidumbre
+
+La implementación de Naive Bayes para clasificación de spam demuestra la aplicabilidad del Teorema de Bayes como mecanismo de actualización de creencias en presencia de evidencia parcial. El clasificador estima P(clase | palabras) ∝ P(clase) × ∏ P(palabra_i | clase), donde la independencia condicional entre features dado la clase es el supuesto central del modelo — el que le da el nombre de "naive". Este supuesto rara vez se cumple en lenguaje natural, donde las palabras co-ocurren de forma sistemática, pero la evidencia empírica muestra que el modelo es robusto a esta violación en tareas de clasificación de texto.
+
+El suavizado de Laplace resuelve el problema de probabilidad cero para palabras no vistas durante entrenamiento: sin él, un único token desconocido colapsaría el producto a cero independientemente del resto del email. Con suavizado, la probabilidad de cada término se estima como (conteo + 1) / (total + |V|), donde |V| es el tamaño del vocabulario.
+
+El uso de log-probabilidades en lugar de probabilidades directas evita underflow numérico al multiplicar muchos valores pequeños, convirtiendo el producto en una suma de logaritmos. La evaluación sobre los 4 archivos de mail reales muestra clasificación correcta en todos los casos, con probabilidades de spam superiores al 96% para los emails adversariales y menores al 1% para los legítimos, lo que refleja una separación clara en el espacio de features aprendido.

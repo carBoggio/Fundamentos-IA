@@ -1,0 +1,7 @@
+# Conclusión — Bloque 10: Aprendizaje Supervisado — Clasificación
+
+La comparación de Árbol de Decisión, Random Forest y XGBoost sobre el dataset Titanic permite analizar empíricamente el efecto de la complejidad del modelo y los ensambles sobre la capacidad de generalización. El árbol sin límite de profundidad alcanza accuracy 98.7% en train y cae a 81.5% en validation, diferencia que cuantifica el overfitting producido por memorización de los 534 ejemplos de entrenamiento. La profundidad 3 resulta óptima, y las reglas aprendidas son coherentes con el conocimiento histórico del evento: el sexo es la variable de mayor poder discriminativo, seguida por la clase del pasajero.
+
+Random Forest, al combinar 100 árboles entrenados sobre subconjuntos aleatorios de datos y features, reduce la varianza del estimador sin aumentar el bias, obteniendo F1=0.738 y AUC=0.829 en test, superando al árbol individual en ambas métricas. XGBoost, mediante boosting secuencial con 100 rondas, alcanza resultados similares con mayor sensibilidad al número de iteraciones: más allá de 100 rondas el modelo empieza a sobreajustar.
+
+La elección de métrica es crítica en este problema. El árbol tiene la mayor precision (0.809) pero el peor recall (0.551), lo que significa que predice pocos sobrevivientes pero con alta confianza. Random Forest balancea mejor ambas métricas. En un contexto donde el costo de los falsos negativos y falsos positivos es simétrico, F1 es la métrica adecuada; si hubiera asimetría en los costos, la decisión sobre qué modelo elegir cambiaría.
